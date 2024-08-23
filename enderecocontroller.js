@@ -48,3 +48,38 @@ exports.getEnderecoById = async (req, res) => {
   }
 };
 
+const axios = require('axios');
+const { Endereco } = require('../models');
+
+module.exports = {
+  async buscarEGuardarEndereco(req, res) {
+    const { cep } = req.body;
+
+    if (!cep) {
+      return res.status(400).json({ error: 'CEP é obrigatório' });
+    }
+
+    try {
+      const response = await axios.get(`https://viacep.com.br/ws/${cep}/json/`);
+
+      if (response.data.erro) {
+        return res.status(404).json({ error: 'CEP não encontrado' });
+      }
+
+      const { logradouro, complemento, bairro, localidade, uf } = response.data;
+
+      const novoEndereco = await Endereco.create({
+        cep,
+        logradouro,
+        complemento,
+        bairro,
+        cidade: localidade,
+        estado: uf,
+      });
+
+      return res.status(201).json(novoEndereco);
+    } catch (error) {
+      return res.status(500).json({ error: 'Erro ao buscar e salvar o endereço' });
+    }
+  },
+};
